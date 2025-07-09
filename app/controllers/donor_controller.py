@@ -1,0 +1,113 @@
+from app.extension import db
+from app.models.organisation_model import Organisation
+from app.models.donor_model import Donor
+from flask import Blueprint,request,jsonify
+from app.status_code import HTTP_200_OK,HTTP_400_BAD_REQUEST,HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR,HTTP_409_CONFLICT
+
+
+#Creating a new donor
+
+# Define the bluerints
+donor = Blueprint('donor',__name__,url_prefix='/api/v1/donor')
+
+# Define the route
+@donor.route('/create_donor', methods = ['POST'])
+def create_student():
+    data = request.json
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')            
+    email = data.get('email')
+    contact = data.get('contact')
+    amount = data.get('amount')
+    #program_id = data.get('program_id')
+    #program = Program.query.get(program_id)
+
+    
+    
+
+    # Verification of the details
+    if not first_name or not last_name or not email or not contact or not amount  :
+        return jsonify({
+            'error':'All fields are required!'
+        }),HTTP_400_BAD_REQUEST
+    
+    
+    # Registering the new student
+    try:
+         new_donor = Donor(first_name=first_name,last_name=last_name, email=email,contact=contact,amount=amount)
+
+         # Adding the new data to the database
+         db.session.add(new_donor)
+         db.session.commit()
+
+         # The return message
+         return jsonify({
+              'message': new_donor.first_name + 'has successfully been created as student',
+              'first_name': new_donor.first_name,
+              'last_name': new_donor.last_name,
+              'email': new_donor.email,
+              'contact': new_donor.contact,
+              'amount': new_donor.amount
+             # 'organisation_id': new_donor.organisation_id
+         }),HTTP_200_OK
+
+    except Exception as e:
+         return jsonify({
+              'error': str(e)
+         }),HTTP_500_INTERNAL_SERVER_ERROR
+
+
+
+#  Getting all donors
+@donor.route('/get', methods = ['GET'])
+def get_all_donors():
+     all_donors = Donor.query.all()
+     donor_data = []
+
+     for donor in all_donors:
+          donor_information = {
+              'first_name': donor.first_name,
+              'last_name':donor.last_name,
+              'email': donor.email,
+              'contact': donor.contact,
+              'amount': donor.amount
+        
+          }
+
+          donor_data.append(donor_information)
+
+          # The return message
+
+     return jsonify({
+              'message': 'All Donors have successfully been retrieved',
+              'Total': len(donor_data),
+              'donors': donor_data
+             
+         }),HTTP_200_OK
+
+
+#Deleting donor
+@donor.route('/delete/<int:id>', methods=['DELETE'])
+def delete_donor(id):
+    try:
+        donor_obj = Donor.query.filter_by(id=id).first()
+        if not donor_obj:
+            return jsonify({
+                'error': 'This donor does not exist!'
+            }), HTTP_404_NOT_FOUND
+
+        db.session.delete(donor_obj)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'The donor has been successfully deleted',
+        }), HTTP_200_OK
+
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        }), HTTP_500_INTERNAL_SERVER_ERROR
+
+
+
+
