@@ -1,9 +1,9 @@
 from flask import Flask
-from app.extension import db,migrate
+from app.extension import db,migrate,Bcrypt,jwt
 from app.controllers.program_controller import program
 from app.controllers.donor_controller import donor
 from app.controllers.organisation_controller import organisation
-
+from flask_bcrypt import Bcrypt
 
 #application factory function
 def create_app():
@@ -14,6 +14,12 @@ def create_app():
     
     db.init_app(app)
     migrate.init_app(app,db)
+    bcrypt = Bcrypt()
+    bcrypt.init_app(app)
+    jwt.init_app(app)
+
+    
+    
 
 
     #Calling models to the init file

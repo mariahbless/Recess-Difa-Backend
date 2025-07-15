@@ -85,6 +85,43 @@ def get_all_donors():
              
          }),HTTP_200_OK
 
+#Updating the donor details
+@donor.route('/update/<int:id>', methods=['PUT'])
+def update_donor(id):
+    try:
+        data = request.json
+
+        # Retrieve donor by ID
+        don = Donor.query.get(id)
+        if not don:
+            return jsonify({'error': 'Donor not found'}), 404
+
+        # Define allowed fields for update
+        allowed_fields = ['first_name', 'last_name', 'email', 'contact', 'amount']
+
+        # Update only provided and allowed fields
+        for key, value in data.items():
+            if key in allowed_fields:
+                setattr(don, key, value)
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Donor updated successfully',
+            'donor': {
+                'id': don.id,
+                'first_name': don.first_name,
+                'last_name': don.last_name,
+                'email': don.email,
+                'contact': don.contact,
+                'amount': don.amount
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 #Deleting donor
 @donor.route('/delete/<int:id>', methods=['DELETE'])

@@ -85,9 +85,46 @@ def get_all_program():
 
 
 
+#updating program
+@program.route('/update/<int:id>', methods=['PUT'])
+def update_program(id):
+    try:
+        data = request.json
+
+        # Retrieve program by ID
+        prog = Program.query.get(id)
+        if not prog:
+            return jsonify({'error': 'Program not found'}), 404
+
+        # Define allowed fields for update
+        allowed_fields = ['name', 'description', 'duration', 'outcome']
+
+        # Update only provided and allowed fields
+        for key, value in data.items():
+            if key in allowed_fields:
+                setattr(prog, key, value)
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Program updated successfully',
+            'program': {
+                'id': prog.id,
+                'name': prog.name,
+                'description': prog.description,
+                'duration': prog.duration,
+                'outcome': prog.outcome
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
-# (e) Delete a student
+
+
+# Delete a program
 @program.route('/delete/<int:id>', methods = ['DELETE'])
 def delete_program(id):
      try:
@@ -103,7 +140,7 @@ def delete_program(id):
           
           # The return message
                return jsonify({
-                    'message': 'The program has been successifully deleted',    
+                    'message': 'The program has been successfully deleted',    
                 }),HTTP_200_OK
 
           
