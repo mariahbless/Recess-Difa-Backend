@@ -19,8 +19,7 @@ def create_student():
     email = data.get('email')
     contact = data.get('contact')
     amount = data.get('amount')
-    #program_id = data.get('program_id')
-    #program = Program.query.get(program_id)
+
 
     
     

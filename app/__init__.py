@@ -1,9 +1,9 @@
 from flask import Flask
-from app.extension import db,migrate,Bcrypt,jwt
+from app.extension import db,migrate,bcrypt,jwt,cors
 from app.controllers.program_controller import program
 from app.controllers.donor_controller import donor
 from app.controllers.organisation_controller import organisation
-from flask_bcrypt import Bcrypt
+
 
 #application factory function
 def create_app():
@@ -11,10 +11,11 @@ def create_app():
     #app instance
     app = Flask(__name__)
     app.config.from_object('config.Config')
+
     
     db.init_app(app)
     migrate.init_app(app,db)
-    bcrypt = Bcrypt()
+    cors.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
 

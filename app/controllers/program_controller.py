@@ -56,70 +56,79 @@ def create_program():
 
 
 
-#  Getting all stdents
-@program.route('/get', methods = ['GET'])
+@program.route('/get', methods=['GET'])
 def get_all_program():
-     all_programs = Program.query.all()
-     programs_data = []
+    all_programs = Program.query.all()
+    programs_data = []
 
-     for program in all_programs:
-          program_information = {
-              'name': program.name,
-              'description': program.description,
-              'duration': program.duration,
-              'outcome': program.outcome,
-              
-        
-          }
+    for program in all_programs:
+        program_information = {
+            'id': program.id,  # Add this line to include the program's ID
+            'name': program.name,
+            'description': program.description,
+            'duration': program.duration,
+            'outcome': program.outcome,
+        }
+        programs_data.append(program_information)
 
-          programs_data.append(program_information)
+    return jsonify({
+        'message': 'All programs have successfully been retrieved',
+        'Total': len(programs_data),
+        'programs': programs_data
+    }), HTTP_200_OK
 
-          # The return message
-
-     return jsonify({
-              'message': 'All programs have successfully been retrieved',
-              'Total': len(programs_data),
-              'programs': programs_data
-             
-         }),HTTP_200_OK
-
-
-
-#updating program
+#Getting a single program
 @program.route('/update/<int:id>', methods=['PUT'])
 def update_program(id):
-    try:
-        data = request.json
+    program = Program.query.get_or_404(id)
+    data = request.json
 
-        # Retrieve program by ID
-        prog = Program.query.get(id)
-        if not prog:
-            return jsonify({'error': 'Program not found'}), 404
+    program.name = data.get('name', program.name)
+    program.description = data.get('description', program.description)
+    program.duration = data.get('duration', program.duration)
+    program.outcome = data.get('outcome', program.outcome)
 
-        # Define allowed fields for update
-        allowed_fields = ['name', 'description', 'duration', 'outcome']
+    db.session.commit()
+    return jsonify({'message': 'Program updated successfully'}), 200
 
-        # Update only provided and allowed fields
-        for key, value in data.items():
-            if key in allowed_fields:
-                setattr(prog, key, value)
 
-        db.session.commit()
 
-        return jsonify({
-            'message': 'Program updated successfully',
-            'program': {
-                'id': prog.id,
-                'name': prog.name,
-                'description': prog.description,
-                'duration': prog.duration,
-                'outcome': prog.outcome
-            }
-        }), 200
 
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+# #updating program
+# @program.route('/update/<int:id>', methods=['PUT'])
+# def update_program(id):
+#     try:
+#         data = request.json
+
+#         # Retrieve program by ID
+#         prog = Program.query.get(id)
+#         if not prog:
+#             return jsonify({'error': 'Program not found'}), 404
+
+#         # Define allowed fields for update
+#         allowed_fields = ['name', 'description', 'duration', 'outcome']
+
+#         # Update only provided and allowed fields
+#         for key, value in data.items():
+#             if key in allowed_fields:
+#                 setattr(prog, key, value)
+
+#         db.session.commit()
+
+#         return jsonify({
+#             'message': 'Program updated successfully',
+#             'program': {
+#                 'id': prog.id,
+#                 'name': prog.name,
+#                 'description': prog.description,
+#                 'duration': prog.duration,
+#                 'outcome': prog.outcome
+#             }
+#         }), 200
+
+#     except Exception as e:
+#         db.session.rollback()
+#         return jsonify({'error': str(e)}), 500
 
 
 

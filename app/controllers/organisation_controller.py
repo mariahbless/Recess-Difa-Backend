@@ -19,13 +19,13 @@ def register_user(): # registering the user
     contact = data.get('contact')
     email = data.get('email').lower()
     password = data.get('password')
-    message = data.get('message')  
+     
     
 
 
 #Request response cycle 
 
-    if not name or not location or not contact or not email or not password or not message: 
+    if not name or not location or not contact or not email or not password: 
         return jsonify({"error": "All fields are required" }),HTTP_400_BAD_REQUEST
 
     
@@ -48,7 +48,7 @@ def register_user(): # registering the user
 
 
         #Creating the user
-         new_user = Organisation(name=name,location=location,password=hashed_password,email=email,contact=contact,message=message)
+         new_user = Organisation(name=name,location=location,password=hashed_password,email=email,contact=contact)
          db.session.add(new_user)
          db.session.commit()
 
@@ -64,7 +64,7 @@ def register_user(): # registering the user
                    'location':new_user.location,
                    'contact':new_user.contact,
                    'email' : new_user.email,
-                   'message':new_user.message,
+                   'password':new_user.password,
                    'created': new_user.created_at,
 
                    
@@ -89,10 +89,10 @@ def login():
     
        user = Organisation.query.filter_by(email=email.lower()).first()
        if user:
-            
-            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+            is_correct_password = bcrypt.check_password_hash(user.password, password)
+            is_correct_password = bcrypt.generate_password_hash(password).decode('utf-8')
             #refresh_token = create_refresh_token(identity=str(user.id))
-            if hashed_password:
+            if is_correct_password:
                    access_token = create_access_token(identity=str(user.id))
                    refresh_token = create_refresh_token(identity= str(user.id)) 
                    return jsonify({
@@ -118,7 +118,34 @@ def login():
             'error': str(e)
             }), HTTP_500_INTERNAL_SERVER_ERROR
     
+#Getting all users
+@organisation.route('/get', methods = ['GET'])
+def get_all_users():
+     all_users = Organisation.query.all()
+     user_data = []
 
+     for user in all_users:
+          user_information = {
+                   'id':user.id,
+                   'name':user.name,
+                   'location':user.location,
+                   'contact':user.contact,
+                   'email' : user.email,
+                   'password':user.password,
+                   'created': user.created_at
+
+          }
+
+          user_data.append(user_information)
+
+          # The return message
+
+     return jsonify({
+              'message': 'All Users have successfully been retrieved',
+              'Total': len(user_data),
+              'donors': user_data
+             
+         }),HTTP_200_OK
  
 #Updating the organisation details
 @organisation.route('/edit/<int:id>', methods=["PUT"])
@@ -131,7 +158,7 @@ def update_organisation(id):
             return jsonify({'error': 'Organisation not found'}), 404
 
         # Securely update only allowed fields
-        allowed_fields = ['name', 'location', 'contact', 'email', 'password', 'message']
+        allowed_fields = ['name', 'location', 'contact', 'email', 'password']
 
         for key, value in data.items():
             if key in allowed_fields:
@@ -155,7 +182,7 @@ def update_organisation(id):
 
         db.session.commit()
 
-        return jsonify({'message': 'Organisation updated successfully'}), 200
+        return jsonify({'message': 'User details updated successfully'}), 200
 
     except Exception as e:
         db.session.rollback()
