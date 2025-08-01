@@ -3,7 +3,7 @@ from app.models.organisation_model import Organisation
 from app.models.program_model import Program
 from flask import Blueprint,request,jsonify
 from app.status_code import HTTP_200_OK,HTTP_400_BAD_REQUEST,HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR,HTTP_409_CONFLICT
-# import validators
+from sqlalchemy import func
 
 #Creating a new student
 
@@ -92,47 +92,6 @@ def update_program(id):
     return jsonify({'message': 'Program updated successfully'}), 200
 
 
-
-
-# #updating program
-# @program.route('/update/<int:id>', methods=['PUT'])
-# def update_program(id):
-#     try:
-#         data = request.json
-
-#         # Retrieve program by ID
-#         prog = Program.query.get(id)
-#         if not prog:
-#             return jsonify({'error': 'Program not found'}), 404
-
-#         # Define allowed fields for update
-#         allowed_fields = ['name', 'description', 'duration', 'outcome']
-
-#         # Update only provided and allowed fields
-#         for key, value in data.items():
-#             if key in allowed_fields:
-#                 setattr(prog, key, value)
-
-#         db.session.commit()
-
-#         return jsonify({
-#             'message': 'Program updated successfully',
-#             'program': {
-#                 'id': prog.id,
-#                 'name': prog.name,
-#                 'description': prog.description,
-#                 'duration': prog.duration,
-#                 'outcome': prog.outcome
-#             }
-#         }), 200
-
-#     except Exception as e:
-#         db.session.rollback()
-#         return jsonify({'error': str(e)}), 500
-
-
-
-
 # Delete a program
 @program.route('/delete/<int:id>', methods = ['DELETE'])
 def delete_program(id):
@@ -158,6 +117,22 @@ def delete_program(id):
           return jsonify({
                'error': str(e)
           }),HTTP_500_INTERNAL_SERVER_ERROR
+     
 
+     #grouping by description
 
+#program = Blueprint('program', __name__, url_prefix='/api/v1/program')
+
+@program.route('/stats/by_description', methods=['GET'])
+def programs_by_description():
+    results = db.session.query(
+        Program.description, func.count(Program.id)
+    ).group_by(Program.description).all()
+
+    data = [{'description': r[0], 'count': r[1]} for r in results]
+
+    return jsonify({
+        'message': 'Programs grouped by description',
+        'data': data
+    }), 200
 

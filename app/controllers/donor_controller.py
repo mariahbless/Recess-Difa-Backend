@@ -1,8 +1,11 @@
 from app.extension import db
 from app.models.organisation_model import Organisation
 from app.models.donor_model import Donor
-from flask import Blueprint,request,jsonify
+from flask import Blueprint,request,jsonify,current_app
 from app.status_code import HTTP_200_OK,HTTP_400_BAD_REQUEST,HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR,HTTP_409_CONFLICT
+from sqlalchemy import func
+from flask_mail import Message
+from app import mail
 
 
 #Creating a new donor
@@ -11,8 +14,8 @@ from app.status_code import HTTP_200_OK,HTTP_400_BAD_REQUEST,HTTP_404_NOT_FOUND,
 donor = Blueprint('donor',__name__,url_prefix='/api/v1/donor')
 
 # Define the route
-@donor.route('/create_donor', methods = ['POST'])
-def create_student():
+@donor.route('/create_donor', methods=['POST'])
+def create_donor():
     data = request.json
     first_name = data.get('first_name')
     last_name = data.get('last_name')            
@@ -20,40 +23,82 @@ def create_student():
     contact = data.get('contact')
     amount = data.get('amount')
 
+    if not first_name or not last_name or not email or not contact or not amount:
+        return jsonify({'error': 'All fields are required!'}), 400
 
-    
-    
-
-    # Verification of the details
-    if not first_name or not last_name or not email or not contact or not amount  :
-        return jsonify({
-            'error':'All fields are required!'
-        }),HTTP_400_BAD_REQUEST
-    
-    
-    # Registering the new student
     try:
-         new_donor = Donor(first_name=first_name,last_name=last_name, email=email,contact=contact,amount=amount)
+        new_donor = Donor(first_name=first_name, last_name=last_name, email=email, contact=contact, amount=amount)
+        db.session.add(new_donor)
+        db.session.commit()
 
-         # Adding the new data to the database
-         db.session.add(new_donor)
-         db.session.commit()
+        # Send thank-you email
+        try:
+            msg = Message(
+                subject="Thank you so much for donating to DIFA-UG!",
+                sender=current_app.config['MAIL_USERNAME'],
+                recipients=[email]
+            )
+            msg.body = f"Dear {first_name},\n\n I am honured to inform you that, \n\nDIFA-Ug has received your donation and we are very grateful.\n\n We look forward to continue interacting with you\n\nThank you!"
+            mail.send(msg)
+        except Exception as mail_err:
+            print(f"Email sending failed: {mail_err}")
 
-         # The return message
-         return jsonify({
-              'message': new_donor.first_name + 'has successfully been created as student',
-              'first_name': new_donor.first_name,
-              'last_name': new_donor.last_name,
-              'email': new_donor.email,
-              'contact': new_donor.contact,
-              'amount': new_donor.amount
-             # 'organisation_id': new_donor.organisation_id
-         }),HTTP_200_OK
+        return jsonify({
+            'message': f'{first_name} has successfully been registered as a donor',
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'contact': contact,
+            'amount': amount
+        }), 200
 
     except Exception as e:
-         return jsonify({
-              'error': str(e)
-         }),HTTP_500_INTERNAL_SERVER_ERROR
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# @donor.route('/create_donor', methods = ['POST'])
+# def create_student():
+#     data = request.json
+#     first_name = data.get('first_name')
+#     last_name = data.get('last_name')            
+#     email = data.get('email')
+#     contact = data.get('contact')
+#     amount = data.get('amount')
+
+
+    
+    
+
+#     # Verification of the details
+#     if not first_name or not last_name or not email or not contact or not amount  :
+#         return jsonify({
+#             'error':'All fields are required!'
+#         }),HTTP_400_BAD_REQUEST
+    
+    
+#     # Registering the new student
+#     try:
+#          new_donor = Donor(first_name=first_name,last_name=last_name, email=email,contact=contact,amount=amount)
+
+#          # Adding the new data to the database
+#          db.session.add(new_donor)
+#          db.session.commit()
+
+#          # The return message
+#          return jsonify({
+#               'message': new_donor.first_name + 'has successfully been created as student',
+#               'first_name': new_donor.first_name,
+#               'last_name': new_donor.last_name,
+#               'email': new_donor.email,
+#               'contact': new_donor.contact,
+#               'amount': new_donor.amount
+#              # 'organisation_id': new_donor.organisation_id
+#          }),HTTP_200_OK
+
+#     except Exception as e:
+#          return jsonify({
+#               'error': str(e)
+#          }),HTTP_500_INTERNAL_SERVER_ERROR
 
 
 
@@ -65,6 +110,7 @@ def get_all_donors():
 
      for donor in all_donors:
           donor_information = {
+              'id': donor.id, 
               'first_name': donor.first_name,
               'last_name':donor.last_name,
               'email': donor.email,
@@ -143,7 +189,22 @@ def delete_donor(id):
         return jsonify({
             'error': str(e)
         }), HTTP_500_INTERNAL_SERVER_ERROR
+    
 
 
+#Getting all donation per month
+@donor.route('/stats/donations_per_month', methods=['GET'])
+def donations_per_month():
+    results = db.session.query(
+        func.date_format(Donor.created_at, '%Y-%m'),
+        func.sum(Donor.amount)
+    ).group_by(func.date_format(Donor.created_at, '%Y-%m')).all()
+
+    data = [{'month': r[0], 'total_amount': float(r[1])} for r in results]
+
+    return jsonify({
+        'message': 'Donations grouped per month',
+        'data': data
+    }), 200
 
 

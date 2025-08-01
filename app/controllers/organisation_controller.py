@@ -76,47 +76,46 @@ def register_user(): # registering the user
          return jsonify({'error':str(e)}),HTTP_500_INTERNAL_SERVER_ERROR
     
 
-   #user login
+#    #user login
+
 @organisation.post('/login')
 def login():
     email = request.json.get('email')
     password = request.json.get('password')
     
     try:
-       if not password or not email:
-        return jsonify({'Message': "Email and Password are required."}), HTTP_400_BAD_REQUEST
-    
-    
-       user = Organisation.query.filter_by(email=email.lower()).first()
-       if user:
-            is_correct_password = bcrypt.check_password_hash(user.password, password)
-            is_correct_password = bcrypt.generate_password_hash(password).decode('utf-8')
-            #refresh_token = create_refresh_token(identity=str(user.id))
-            if is_correct_password:
-                   access_token = create_access_token(identity=str(user.id))
-                   refresh_token = create_refresh_token(identity= str(user.id)) 
-                   return jsonify({
-                'user':{
-                    'id': user.id,
-                    'username': user.name,
-                    'email': user.email,
-                    'access_token': access_token,
-                    'refresh_token': refresh_token 
-                   },
-                     'message': "You have successfully logged into your account."
-                  }), HTTP_200_OK
-            
-            else: 
-                return jsonify({'Message': "Invalid password."}), HTTP_401_UNAUTHORIZED
-           
+        if not password or not email:
+            return jsonify({'success': False, 'message': "Email and Password are required."}), HTTP_400_BAD_REQUEST
 
-       else:
-         return jsonify({'Message': "Invalid email address."}), HTTP_401_UNAUTHORIZED
+        user = Organisation.query.filter_by(email=email.lower()).first()
+        if user:
+            is_correct_password = bcrypt.check_password_hash(user.password, password)
+            if is_correct_password:
+                access_token = create_access_token(identity=str(user.id))
+                refresh_token = create_refresh_token(identity=str(user.id)) 
+                return jsonify({
+                    'success': True,
+                    'user': {
+                        'id': user.id,
+                        'username': user.name,
+                        'email': user.email,
+                        'access_token': access_token,
+                        'refresh_token': refresh_token 
+                    },
+                    'message': "You have successfully logged into your account."
+                }), HTTP_200_OK
+            else: 
+                return jsonify({'success': False, 'message': "Invalid password."}), HTTP_401_UNAUTHORIZED
+        else:
+            return jsonify({'success': False, 'message': "Invalid email address."}), HTTP_401_UNAUTHORIZED
 
     except Exception as e:
         return jsonify({
+            'success': False,
             'error': str(e)
-            }), HTTP_500_INTERNAL_SERVER_ERROR
+        }), HTTP_500_INTERNAL_SERVER_ERROR
+
+
     
 #Getting all users
 @organisation.route('/get', methods = ['GET'])
